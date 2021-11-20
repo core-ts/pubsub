@@ -1,16 +1,18 @@
 import { PubSub, Topic } from '@google-cloud/pubsub';
 import { CredentialBody, ExternalAccountClientOptions } from 'google-auth-library';
-import { checkPermission, StringMap } from './core';
+import { checkPermission, createPubSub, StringMap } from './core';
 
+export function createTopic(topicName: string, projectId: string, credentials: CredentialBody | ExternalAccountClientOptions, log?: (msg: any) => void): Topic {
+  const t = new PubSub({ projectId, credentials }).topic(topicName);
+  checkPermission(t.iam, ['pubsub.topics.publish'], log);
+  return t;
+}
+export function createPublisher<T>(topicName: string, projectId: string, credentials: CredentialBody | ExternalAccountClientOptions, log?: (msg: any) => void): Publisher<T> {
+  const t = createTopic(topicName, projectId, credentials, log);
+  return new Publisher<T>(t);
+}
 export class Publisher<T> {
-  topic: Topic;
-  constructor(
-    public topicName: string,
-    projectId: string,
-    credentials: CredentialBody | ExternalAccountClientOptions,
-    public log?: (msg: any) => void) {
-    this.topic = new PubSub({ projectId, credentials }).topic(this.topicName);
-    checkPermission(this.topic.iam, ['pubsub.topics.publish'], this.log);
+  constructor(public topic: Topic) {
     this.publish = this.publish.bind(this);
   }
   publish(data: T, attributes?: StringMap): Promise<string> {
@@ -23,12 +25,12 @@ export class Publisher<T> {
     });
   }
 }
+export function createSimplePublisher<T>(projectId: string, credentials: CredentialBody | ExternalAccountClientOptions): SimplePublisher<T> {
+  const p = createPubSub(projectId, credentials);
+  return new SimplePublisher<T>(p);
+}
 export class SimplePublisher<T> {
-  pubsub: PubSub;
-  constructor(
-    projectId: string,
-    credentials: CredentialBody | ExternalAccountClientOptions) {
-    this.pubsub = new PubSub({ projectId, credentials });
+  constructor(public pubsub: PubSub) {
     this.publish = this.publish.bind(this);
   }
   publish(topicName: string, data: T, attributes?: StringMap): Promise<string> {
