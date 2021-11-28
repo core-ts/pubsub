@@ -1,6 +1,6 @@
 {
   "name": "google-pubsub",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "google-pubsub",
   "main": "./lib/index.js",
   "types": "./src/index.ts",
